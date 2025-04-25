@@ -1,0 +1,9 @@
+basePath: /
+host: localhost:8080
+info:
+  contact: {}
+  description: API for managing projects in the Titanium platform
+  title: Titanium Project Service
+  version: 0.1.0
+paths: {}
+swagger: "2.0"
