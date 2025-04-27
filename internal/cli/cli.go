@@ -17,6 +17,7 @@ type Command struct {
 	Name        string
 	Description string
 	Run         func(cli *CLI, args []string) error
+	Subcommands []Command
 }
 
 // New creates a new CLI instance
@@ -43,6 +44,16 @@ func (c *CLI) Run(args []string) error {
 		return fmt.Errorf("unknown command: %s", args[0])
 	}
 
+	// If there are subcommands and we have more args, check for subcommand
+	if len(cmd.Subcommands) > 0 && len(args) > 1 {
+		for _, subcmd := range cmd.Subcommands {
+			if subcmd.Name == args[1] {
+				return subcmd.Run(c, args[2:])
+			}
+		}
+	}
+
+	// If no subcommand matched or no subcommands exist, run the main command
 	return cmd.Run(c, args[1:])
 }
 
@@ -52,6 +63,11 @@ func (c *CLI) PrintUsage() {
 	fmt.Println("\nCommands:")
 	for _, cmd := range c.commands {
 		fmt.Printf("  %-15s %s\n", cmd.Name, cmd.Description)
+		if len(cmd.Subcommands) > 0 {
+			for _, subcmd := range cmd.Subcommands {
+				fmt.Printf("    %-13s %s\n", subcmd.Name, subcmd.Description)
+			}
+		}
 	}
 }
 
