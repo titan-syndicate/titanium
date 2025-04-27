@@ -1,0 +1,26 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+version: 2
+project_name: go-test-app
+
+builds:
+  # Build for macOS AMD64
+  - id: darwin_amd64
+    main: main.go
+    goos:
+      - darwin
+    goarch:
+      - amd64
+    binary: go-test-app
+    env:
+      - CGO_ENABLED=1
+
+  # Build for macOS ARM (Apple Silicon)
+  - id: darwin_arm64
+    main: main.go
+    goos:
+      - darwin
+    goarch:
+      - arm64
+    binary: go-test-app
+    env:
+      - CGO_ENABLED=1

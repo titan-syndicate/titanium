@@ -4,7 +4,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"os/exec"
 
@@ -19,28 +18,36 @@ type Lint mg.Namespace
 type Generate mg.Namespace
 type Docs mg.Namespace
 
-// Default target to run when none is specified
-func Default() {
-	fmt.Println("Available targets:")
-	fmt.Println("  mage dev:run    - Run the development server")
-	fmt.Println("  mage build      - Build the server binary")
-	fmt.Println("  mage test       - Run tests")
-	fmt.Println("  mage lint       - Run linters")
-	fmt.Println("  mage generate   - Generate code from OpenAPI spec")
-	fmt.Println("  mage docs:gen   - Generate Swagger documentation")
+// Run namespace for specific run commands
+type Run mg.Namespace
+
+// Build the node test app
+func (Run) NodeTest() error {
+	cmd := exec.Command("go", "run", "cmd/titanium/main.go", "build", "./test/node-app")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
+
+// Build the go test app
+func (Run) GoTest() error {
+	cmd := exec.Command("go", "run", "cmd/titanium/main.go", "build", "go", "v0.0.0-test", "./test/go-app")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
 }
 
 // Run the development server
-func (Dev) Run() error {
-	return sh.Run("go", "run", "cmd/server/main.go")
+func (Dev) Server() error {
+	return sh.Run("go", "run", "cmd/titanium/main.go", "--mode=server")
 }
 
-// Build the server binary
+// Build the unified binary
 func (Build) All() error {
 	if err := os.MkdirAll("bin", 0755); err != nil {
 		return err
 	}
-	return sh.Run("go", "build", "-o", "bin/server", "cmd/server/main.go")
+	return sh.Run("go", "build", "-o", "bin/ti", "cmd/titanium/main.go")
 }
 
 // Run tests
@@ -68,12 +75,15 @@ func (Generate) All() error {
 
 // Generate Swagger documentation
 func (Docs) Gen() error {
-	return sh.Run("swag", "init", "-g", "cmd/server/main.go", "-o", "docs")
+	return sh.Run("swag", "init", "-g", "cmd/titanium/main.go", "-o", "docs")
 }
 
 // Clean build artifacts
 func Clean() error {
 	if err := os.RemoveAll("bin"); err != nil {
+		return err
+	}
+	if err := os.RemoveAll("dist"); err != nil {
 		return err
 	}
 	return sh.Run("go", "clean")
