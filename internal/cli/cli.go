@@ -2,24 +2,28 @@ package cli
 
 import (
 	"fmt"
+
+	"github.com/docker/docker/client"
 )
 
 // CLI represents the command-line interface
 type CLI struct {
-	commands map[string]Command
+	commands  map[string]Command
+	dockerCli *client.Client
 }
 
 // Command represents a CLI command
 type Command struct {
 	Name        string
 	Description string
-	Run         func(args []string) error
+	Run         func(cli *CLI, args []string) error
 }
 
 // New creates a new CLI instance
-func New() *CLI {
+func New(dockerCli *client.Client) *CLI {
 	return &CLI{
-		commands: make(map[string]Command),
+		commands:  make(map[string]Command),
+		dockerCli: dockerCli,
 	}
 }
 
@@ -39,7 +43,7 @@ func (c *CLI) Run(args []string) error {
 		return fmt.Errorf("unknown command: %s", args[0])
 	}
 
-	return cmd.Run(args[1:])
+	return cmd.Run(c, args[1:])
 }
 
 // PrintUsage prints the usage information
@@ -49,4 +53,9 @@ func (c *CLI) PrintUsage() {
 	for _, cmd := range c.commands {
 		fmt.Printf("  %-15s %s\n", cmd.Name, cmd.Description)
 	}
+}
+
+// GetDockerClient returns the Docker client instance
+func (c *CLI) GetDockerClient() *client.Client {
+	return c.dockerCli
 }

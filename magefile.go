@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 
 	"github.com/magefile/mage/mg"
 	"github.com/magefile/mage/sh"
@@ -39,7 +40,8 @@ func Run(what string) error {
 
 // Run a CLI command
 func (Dev) Run(what string) error {
-	output, err := sh.Output("go", "run", "cmd/titanium/main.go", what)
+	args := append([]string{"run", "cmd/titanium/main.go"}, strings.Fields(what)...)
+	output, err := sh.Output("go", args...)
 	if err != nil {
 		return err
 	}

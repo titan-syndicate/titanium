@@ -5,6 +5,7 @@ import (
 	"io/fs"
 	"net/http"
 
+	"github.com/docker/docker/client"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
@@ -14,11 +15,12 @@ var swaggerUI embed.FS
 
 // Server represents the API server
 type Server struct {
-	echo *echo.Echo
+	echo      *echo.Echo
+	dockerCli *client.Client
 }
 
 // New creates a new server instance
-func New() *Server {
+func New(dockerCli *client.Client) *Server {
 	e := echo.New()
 
 	// Middleware
@@ -38,7 +40,8 @@ func New() *Server {
 	})
 
 	return &Server{
-		echo: e,
+		echo:      e,
+		dockerCli: dockerCli,
 	}
 }
 
