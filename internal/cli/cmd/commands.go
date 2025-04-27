@@ -107,24 +107,34 @@ func runBuild(cli *cli.CLI, args []string) error {
 		return fmt.Errorf("failed to start container: %v", err)
 	}
 
-	// Wait for the container to finish
+	// Set up a channel to receive container logs
+	logs, err := dockerCli.ContainerLogs(context.Background(), resp.ID, container.LogsOptions{
+		ShowStdout: true,
+		ShowStderr: true,
+		Follow:     true,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to get container logs: %v", err)
+	}
+	defer logs.Close()
+
+	// Set up a channel to receive container completion
 	statusCh, errCh := dockerCli.ContainerWait(context.Background(), resp.ID, container.WaitConditionNotRunning)
+
+	// Stream logs in a goroutine
+	go func() {
+		stdcopy.StdCopy(os.Stdout, os.Stderr, logs)
+	}()
+
+	// Wait for container completion
 	select {
 	case err := <-errCh:
 		if err != nil {
 			return fmt.Errorf("error waiting for container: %v", err)
 		}
 	case <-statusCh:
+		// Container completed successfully
 	}
-
-	// Get the container logs
-	out, err := dockerCli.ContainerLogs(context.Background(), resp.ID, container.LogsOptions{ShowStdout: true, ShowStderr: true})
-	if err != nil {
-		return fmt.Errorf("failed to get container logs: %v", err)
-	}
-
-	// Copy the logs to stdout and stderr
-	stdcopy.StdCopy(os.Stdout, os.Stderr, out)
 
 	// Remove the container
 	if err := dockerCli.ContainerRemove(context.Background(), resp.ID, container.RemoveOptions{}); err != nil {

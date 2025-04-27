@@ -4,10 +4,8 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"os/exec"
-	"strings"
 
 	"github.com/magefile/mage/mg"
 	"github.com/magefile/mage/sh"
@@ -20,33 +18,15 @@ type Lint mg.Namespace
 type Generate mg.Namespace
 type Docs mg.Namespace
 
-// Default target to run when none is specified
-func Default() {
-	fmt.Println("Available targets:")
-	fmt.Println("  mage run <command>     - Run a CLI command (e.g., mage run pack)")
-	fmt.Println("  mage dev:run <command> - Run a CLI command (same as mage run)")
-	fmt.Println("  mage dev:server        - Run the development server")
-	fmt.Println("  mage build             - Build the unified binary")
-	fmt.Println("  mage test              - Run tests")
-	fmt.Println("  mage lint              - Run linters")
-	fmt.Println("  mage generate          - Generate code from OpenAPI spec")
-	fmt.Println("  mage docs:gen          - Generate Swagger documentation")
-}
+// Run namespace for specific run commands
+type Run mg.Namespace
 
-// Run a CLI command (alias for dev:run)
-func Run(what string) error {
-	return Dev{}.Run(what)
-}
-
-// Run a CLI command
-func (Dev) Run(what string) error {
-	args := append([]string{"run", "cmd/titanium/main.go"}, strings.Fields(what)...)
-	output, err := sh.Output("go", args...)
-	if err != nil {
-		return err
-	}
-	fmt.Print(output)
-	return nil
+// Build the node test app
+func (Run) NodeTest() error {
+	cmd := exec.Command("go", "run", "cmd/titanium/main.go", "build", "./test/node-app")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
 }
 
 // Run the development server
