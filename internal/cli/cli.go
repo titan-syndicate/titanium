@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/docker/docker/client"
+	"github.com/spf13/cobra"
 )
 
 // CLI represents the command-line interface
@@ -17,6 +18,7 @@ type Command struct {
 	Name        string
 	Description string
 	Run         func(cli *CLI, args []string) error
+	RunE        func(cmd *cobra.Command, args []string) error
 	Subcommands []Command
 }
 

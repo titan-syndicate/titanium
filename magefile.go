@@ -29,6 +29,14 @@ func (Run) NodeTest() error {
 	return cmd.Run()
 }
 
+// Build the go test app
+func (Run) GoTest() error {
+	cmd := exec.Command("go", "run", "cmd/titanium/main.go", "build", "go", "v0.0.0-test", "./test/go-app")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
+
 // Run the development server
 func (Dev) Server() error {
 	return sh.Run("go", "run", "cmd/titanium/main.go", "--mode=server")
@@ -73,6 +81,9 @@ func (Docs) Gen() error {
 // Clean build artifacts
 func Clean() error {
 	if err := os.RemoveAll("bin"); err != nil {
+		return err
+	}
+	if err := os.RemoveAll("dist"); err != nil {
 		return err
 	}
 	return sh.Run("go", "clean")

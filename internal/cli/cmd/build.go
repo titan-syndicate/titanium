@@ -16,7 +16,9 @@ func RegisterBuildCommands(cliApp *cli.CLI) {
 			{
 				Name:        "go",
 				Description: "Build a Go application",
-				Run:         runGoreleaser,
+				Run: func(cli *cli.CLI, args []string) error {
+					return RunGoreleaser(nil, args)
+				},
 			},
 			{
 				Name:        "pack",
