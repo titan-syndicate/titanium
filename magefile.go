@@ -22,25 +22,42 @@ type Docs mg.Namespace
 // Default target to run when none is specified
 func Default() {
 	fmt.Println("Available targets:")
-	fmt.Println("  mage dev:run    - Run the development server")
-	fmt.Println("  mage build      - Build the server binary")
-	fmt.Println("  mage test       - Run tests")
-	fmt.Println("  mage lint       - Run linters")
-	fmt.Println("  mage generate   - Generate code from OpenAPI spec")
-	fmt.Println("  mage docs:gen   - Generate Swagger documentation")
+	fmt.Println("  mage run <command>     - Run a CLI command (e.g., mage run pack)")
+	fmt.Println("  mage dev:run <command> - Run a CLI command (same as mage run)")
+	fmt.Println("  mage dev:server        - Run the development server")
+	fmt.Println("  mage build             - Build the unified binary")
+	fmt.Println("  mage test              - Run tests")
+	fmt.Println("  mage lint              - Run linters")
+	fmt.Println("  mage generate          - Generate code from OpenAPI spec")
+	fmt.Println("  mage docs:gen          - Generate Swagger documentation")
+}
+
+// Run a CLI command (alias for dev:run)
+func Run(what string) error {
+	return Dev{}.Run(what)
+}
+
+// Run a CLI command
+func (Dev) Run(what string) error {
+	output, err := sh.Output("go", "run", "cmd/titanium/main.go", what)
+	if err != nil {
+		return err
+	}
+	fmt.Print(output)
+	return nil
 }
 
 // Run the development server
-func (Dev) Run() error {
-	return sh.Run("go", "run", "cmd/server/main.go")
+func (Dev) Server() error {
+	return sh.Run("go", "run", "cmd/titanium/main.go", "--mode=server")
 }
 
-// Build the server binary
+// Build the unified binary
 func (Build) All() error {
 	if err := os.MkdirAll("bin", 0755); err != nil {
 		return err
 	}
-	return sh.Run("go", "build", "-o", "bin/server", "cmd/server/main.go")
+	return sh.Run("go", "build", "-o", "bin/ti", "cmd/titanium/main.go")
 }
 
 // Run tests
@@ -68,7 +85,7 @@ func (Generate) All() error {
 
 // Generate Swagger documentation
 func (Docs) Gen() error {
-	return sh.Run("swag", "init", "-g", "cmd/server/main.go", "-o", "docs")
+	return sh.Run("swag", "init", "-g", "cmd/titanium/main.go", "-o", "docs")
 }
 
 // Clean build artifacts
