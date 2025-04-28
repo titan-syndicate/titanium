@@ -1,0 +1,94 @@
+name: Release Candidate
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  release-candidate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Install jq
+        run: sudo apt-get install -y jq
+
+      - name: Get and increment latest version
+        id: version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Get latest release using GitHub API
+          LATEST=$(curl -s -H "Authorization: token $GH_TOKEN" \
+            "https://api.github.com/repos/titan-syndicate/titanium/releases/latest" | \
+            jq -r '.tag_name')
+
+          if [ "$LATEST" = "null" ] || [ -z "$LATEST" ]; then
+            LATEST="v0.0.0"
+          fi
+          echo "Found latest release: $LATEST"
+
+          # Remove 'v' prefix and split into parts
+          VERSION=${LATEST#v}
+          MAJOR=$(echo $VERSION | cut -d. -f1)
+          MINOR=$(echo $VERSION | cut -d. -f2)
+          PATCH=$(echo $VERSION | cut -d. -f3)
+
+          # Increment patch
+          PATCH=$((PATCH + 1))
+
+          # Create new version
+          NEW_VERSION="v${MAJOR}.${MINOR}.${PATCH}"
+          echo "Creating new version: $NEW_VERSION"
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Create RC tag and prerelease
+        id: create_rc
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Get short commit hash
+          COMMIT_HASH=$(git rev-parse --short HEAD)
+
+          # Create RC tag (using proper semver format)
+          RC_TAG="${{ steps.version.outputs.new_version }}-rc.${COMMIT_HASH}"
+
+          # Create prerelease
+          gh release create "$RC_TAG" \
+            --prerelease \
+            --title "Release Candidate $RC_TAG" \
+            --notes "Automated release candidate for commit $COMMIT_HASH"
+
+          echo "rc_tag=$RC_TAG" >> $GITHUB_OUTPUT
+
+      - name: Checkout with tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.create_rc.outputs.rc_tag }}
+          fetch-depth: 0
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          args: release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Ensure prerelease status
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release edit "${{ steps.create_rc.outputs.rc_tag }}" --prerelease
