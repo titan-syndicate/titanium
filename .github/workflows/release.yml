@@ -7,9 +7,8 @@ env:
   SBOM_NAME: "${{ github.event.repository.name }}-sbom.spdx.json"
 
 on:
-  push:
-    tags:
-      - 'v*'  # Triggers on any version tag
+  release:
+    types: [created]
 
 jobs:
   release:
@@ -22,7 +21,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          ref: ${{ github.ref_name }}
+          ref: ${{ github.event.release.tag_name }}
 
       - name: Setup Go
         uses: actions/setup-go@v4
