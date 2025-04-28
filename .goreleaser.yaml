@@ -69,7 +69,7 @@ archives:
       - README.md
 
 checksum:
-  name_template: "{{ .ArtifactName }}.sha256"
+  name_template: "{{ .ProjectName }}_{{ .Version }}_checksums.txt"
   algorithm: sha256
 
 snapshot:
