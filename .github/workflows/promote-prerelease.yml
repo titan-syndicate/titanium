@@ -1,0 +1,49 @@
+name: Promote Prerelease
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Find RC commit
+        id: find_rc
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Get the version from the release that triggered this workflow
+          VERSION="${{ github.event.release.tag_name }}"
+
+          # Find the latest RC for this version
+          RC_TAG=$(gh release list | grep "$VERSION-rc" | head -n 1 | awk '{print $1}')
+          if [ -z "$RC_TAG" ]; then
+            echo "No RC found for version $VERSION"
+            exit 1
+          fi
+
+          # Extract commit hash from RC tag
+          COMMIT_HASH=$(echo $RC_TAG | cut -d. -f3)
+          echo "Found RC commit: $COMMIT_HASH"
+          echo "commit_hash=$COMMIT_HASH" >> $GITHUB_OUTPUT
+
+      - name: Checkout RC commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.find_rc.outputs.commit_hash }}
+          fetch-depth: 0
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          args: release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Tell GoReleaser to create a non-prerelease
+          SKIP_PRERELEASE: true
