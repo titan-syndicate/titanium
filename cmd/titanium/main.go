@@ -14,6 +14,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/titan-syndicate/titanium/internal/cli"
 	ti "github.com/titan-syndicate/titanium/internal/cli/cmd"
+	"github.com/titan-syndicate/titanium/internal/plugin"
 )
 
 var (
@@ -52,13 +53,79 @@ var buildPackCmd = &cobra.Command{
 	RunE:  runPack,
 }
 
+var pluginCmd = &cobra.Command{
+	Use:   "plugin",
+	Short: "Manage plugins",
+	Long:  `Install, list, and manage Titanium plugins`,
+}
+
+var pluginInstallCmd = &cobra.Command{
+	Use:   "install [plugin-path]",
+	Short: "Install a plugin",
+	Long:  `Install a plugin from a local binary`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if len(args) == 0 {
+			return fmt.Errorf("plugin path is required")
+		}
+		manager := plugin.NewManager()
+		return manager.InstallPlugin(args[0])
+	},
+}
+
+var pluginListCmd = &cobra.Command{
+	Use:   "list",
+	Short: "List installed plugins",
+	Long:  `List all installed Titanium plugins`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		manager := plugin.NewManager()
+		plugins, err := manager.ListPlugins()
+		if err != nil {
+			return err
+		}
+		for _, p := range plugins {
+			fmt.Println(p)
+		}
+		return nil
+	},
+}
+
+var pluginRunCmd = &cobra.Command{
+	Use:   "run [plugin-name] [args...]",
+	Short: "Run an installed plugin",
+	Long:  `Run an installed Titanium plugin with the given arguments`,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if len(args) == 0 {
+			return fmt.Errorf("plugin name is required")
+		}
+		manager := plugin.NewManager()
+		raw, err := manager.LoadPlugin(args[0])
+		if err != nil {
+			return err
+		}
+		plugin := raw.(plugin.Plugin)
+
+		result, err := plugin.Execute(args[1:])
+		if err != nil {
+			return err
+		}
+		fmt.Println(result)
+		return nil
+	},
+}
+
 func init() {
 	// Add build subcommands
 	buildCmd.AddCommand(buildGoCmd)
 	buildCmd.AddCommand(buildPackCmd)
 
-	// Add build command to root
+	// Add plugin subcommands
+	pluginCmd.AddCommand(pluginInstallCmd)
+	pluginCmd.AddCommand(pluginListCmd)
+	pluginCmd.AddCommand(pluginRunCmd)
+
+	// Add commands to root
 	rootCmd.AddCommand(buildCmd)
+	rootCmd.AddCommand(pluginCmd)
 }
 
 func main() {
@@ -74,6 +141,10 @@ func main() {
 
 	// Create CLI instance
 	cliInstance = cli.New(dockerCli)
+
+	// Register commands
+	ti.RegisterBuildCommands(cliInstance)
+	ti.RegisterPluginCommands(cliInstance)
 
 	// Execute the root command
 	if err := rootCmd.Execute(); err != nil {
