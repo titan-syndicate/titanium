@@ -86,5 +86,8 @@ func Clean() error {
 	if err := os.RemoveAll("dist"); err != nil {
 		return err
 	}
+	if err := os.RemoveAll(".tmp"); err != nil {
+		return err
+	}
 	return sh.Run("go", "clean")
 }
