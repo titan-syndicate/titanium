@@ -1,0 +1,45 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 0.1.0)'
+        required: true
+        type: string
+      commit:
+        description: 'Commit SHA to release'
+        required: true
+        type: string
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.commit }}
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Ensure we create a full release, not a prerelease
+          GORELEASER_CURRENT_TAG: ${{ github.event.inputs.version }}
+          GORELEASER_PREVIOUS_TAG: ${{ github.event.inputs.version }}
+
+      - name: Create workflow summary
+        if: success()
+        run: |
+          echo "## Release Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- Version: ${{ github.event.inputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Commit: ${{ github.event.inputs.commit }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Release: https://github.com/${{ github.repository }}/releases/tag/${{ github.event.inputs.version }}" >> $GITHUB_STEP_SUMMARY
