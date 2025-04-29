@@ -4,10 +4,25 @@ on:
   push:
     branches:
       - main
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  workflow_dispatch:
+    inputs:
+      version_increment:
+        description: 'Version increment type'
+        required: false
+        type: choice
+        options:
+          - major
+          - minor
+          - patch
+      commit_hash:
+        description: 'Specific commit hash to use (optional)'
+        required: false
+        type: string
+      skip_prerelease:
+        description: 'Skip prerelease flag and hash in filenames'
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   release-candidate:
@@ -22,9 +37,6 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: '1.22'
-
-      - name: Install jq
-        run: sudo apt-get install -y jq
 
       - name: Get and increment latest version
         id: version
@@ -47,8 +59,18 @@ jobs:
           MINOR=$(echo $VERSION | cut -d. -f2)
           PATCH=$(echo $VERSION | cut -d. -f3)
 
-          # Increment patch
-          PATCH=$((PATCH + 1))
+          # Increment based on input or default to patch
+          INCREMENT_TYPE="${{ github.event.inputs.version_increment }}"
+          if [ "$INCREMENT_TYPE" = "major" ]; then
+            MAJOR=$((MAJOR + 1))
+            MINOR=0
+            PATCH=0
+          elif [ "$INCREMENT_TYPE" = "minor" ]; then
+            MINOR=$((MINOR + 1))
+            PATCH=0
+          else
+            PATCH=$((PATCH + 1))
+          fi
 
           # Create new version
           NEW_VERSION="v${MAJOR}.${MINOR}.${PATCH}"
@@ -60,24 +82,33 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # Get short commit hash
-          COMMIT_HASH=$(git rev-parse --short HEAD)
+          # Get commit hash (either from input or github.sha)
+          COMMIT_HASH="${{ github.event.inputs.commit_hash || github.sha }}"
+          COMMIT_HASH=$(echo $COMMIT_HASH | cut -c1-7)  # Get short hash
 
-          # Create RC tag (using proper semver format)
-          RC_TAG="${{ steps.version.outputs.new_version }}-rc.${COMMIT_HASH}"
+          # Create tag based on skip_prerelease flag
+          SKIP_PRERELEASE="${{ github.event.inputs.skip_prerelease }}"
+          if [ "$SKIP_PRERELEASE" = "true" ]; then
+            TAG="${{ steps.version.outputs.new_version }}"
+            PRERELEASE_FLAG=""
+          else
+            TAG="${{ steps.version.outputs.new_version }}-rc.${COMMIT_HASH}"
+            PRERELEASE_FLAG="--prerelease"
+          fi
 
-          # Create prerelease
-          gh release create "$RC_TAG" \
-            --prerelease \
-            --title "Release Candidate $RC_TAG" \
-            --notes "Automated release candidate for commit $COMMIT_HASH"
+          # Create release
+          gh release create "$TAG" \
+            $PRERELEASE_FLAG \
+            --title "Release $TAG" \
+            --notes "Release for commit $COMMIT_HASH"
 
-          echo "rc_tag=$RC_TAG" >> $GITHUB_OUTPUT
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "commit_hash=$COMMIT_HASH" >> $GITHUB_OUTPUT
 
       - name: Checkout with tag
         uses: actions/checkout@v4
         with:
-          ref: ${{ steps.create_rc.outputs.rc_tag }}
+          ref: ${{ steps.create_rc.outputs.tag }}
           fetch-depth: 0
 
       - name: Run GoReleaser
@@ -86,9 +117,12 @@ jobs:
           args: release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Add skip_prerelease flag to GoReleaser if needed
+          SKIP_PRERELEASE: ${{ github.event.inputs.skip_prerelease }}
 
       - name: Ensure prerelease status
+        if: ${{ github.event.inputs.skip_prerelease != 'true' }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release edit "${{ steps.create_rc.outputs.rc_tag }}" --prerelease
+          gh release edit "${{ steps.create_rc.outputs.tag }}" --prerelease
