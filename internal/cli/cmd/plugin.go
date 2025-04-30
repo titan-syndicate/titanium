@@ -3,6 +3,7 @@ package ti
 import (
 	"fmt"
 
+	"github.com/spf13/cobra"
 	"github.com/titan-syndicate/titanium/internal/cli"
 	"github.com/titan-syndicate/titanium/internal/plugin"
 )
@@ -18,7 +19,7 @@ func RegisterPluginCommands(cliApp *cli.CLI) {
 			{
 				Name:        "install",
 				Description: "Install a plugin",
-				Run: func(cli *cli.CLI, args []string) error {
+				RunE: func(cmd *cobra.Command, args []string) error {
 					if len(args) == 0 {
 						return fmt.Errorf("plugin path is required")
 					}
@@ -28,7 +29,7 @@ func RegisterPluginCommands(cliApp *cli.CLI) {
 			{
 				Name:        "list",
 				Description: "List installed plugins",
-				Run: func(cli *cli.CLI, args []string) error {
+				RunE: func(cmd *cobra.Command, args []string) error {
 					plugins, err := pluginManager.ListPlugins()
 					if err != nil {
 						return err
@@ -36,6 +37,23 @@ func RegisterPluginCommands(cliApp *cli.CLI) {
 					for _, plugin := range plugins {
 						fmt.Println(plugin)
 					}
+					return nil
+				},
+			},
+			{
+				Name:        "exec",
+				Description: "Execute a plugin",
+				RunE: func(cmd *cobra.Command, args []string) error {
+					if len(args) < 1 {
+						return fmt.Errorf("plugin name is required")
+					}
+					pluginName := args[0]
+					pluginArgs := args[1:]
+					result, err := pluginManager.ExecutePlugin(pluginName, pluginArgs)
+					if err != nil {
+						return err
+					}
+					fmt.Println(result)
 					return nil
 				},
 			},

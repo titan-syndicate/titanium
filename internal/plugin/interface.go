@@ -20,13 +20,6 @@ type Plugin interface {
 	Execute(args []string) (string, error)
 }
 
-// GRPCPlugin is the interface that all GRPC plugins must implement
-type GRPCPlugin interface {
-	Plugin
-	plugin.GRPCPlugin
-}
-
-// GRPCServer is the interface that all GRPC servers must implement
 type GRPCServer interface {
 	plugin.GRPCPlugin
 }

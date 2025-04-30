@@ -30,6 +30,39 @@ func New(dockerCli *client.Client) *CLI {
 	}
 }
 
+// NewCLI creates a new CLI instance without Docker client
+func NewCLI() *CLI {
+	return &CLI{
+		commands: make(map[string]Command),
+	}
+}
+
+// GetCommand returns a command by name
+func (c *CLI) GetCommand(name string) *cobra.Command {
+	cmd, ok := c.commands[name]
+	if !ok {
+		return nil
+	}
+
+	cobraCmd := &cobra.Command{
+		Use:   cmd.Name,
+		Short: cmd.Description,
+		RunE:  cmd.RunE,
+	}
+
+	// Add subcommands
+	for _, subcmd := range cmd.Subcommands {
+		subcobraCmd := &cobra.Command{
+			Use:   subcmd.Name,
+			Short: subcmd.Description,
+			RunE:  subcmd.RunE,
+		}
+		cobraCmd.AddCommand(subcobraCmd)
+	}
+
+	return cobraCmd
+}
+
 // RegisterCommand registers a new command
 func (c *CLI) RegisterCommand(cmd Command) {
 	c.commands[cmd.Name] = cmd

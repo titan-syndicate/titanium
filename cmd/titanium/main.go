@@ -9,12 +9,10 @@ import (
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/image"
-	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/spf13/cobra"
 	"github.com/titan-syndicate/titanium/internal/cli"
 	ti "github.com/titan-syndicate/titanium/internal/cli/cmd"
-	"github.com/titan-syndicate/titanium/internal/plugin"
 )
 
 var (
@@ -53,101 +51,28 @@ var buildPackCmd = &cobra.Command{
 	RunE:  runPack,
 }
 
-var pluginCmd = &cobra.Command{
-	Use:   "plugin",
-	Short: "Manage plugins",
-	Long:  `Install, list, and manage Titanium plugins`,
-}
-
-var pluginInstallCmd = &cobra.Command{
-	Use:   "install [plugin-path]",
-	Short: "Install a plugin",
-	Long:  `Install a plugin from a local binary`,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		if len(args) == 0 {
-			return fmt.Errorf("plugin path is required")
-		}
-		manager := plugin.NewManager()
-		return manager.InstallPlugin(args[0])
-	},
-}
-
-var pluginListCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List installed plugins",
-	Long:  `List all installed Titanium plugins`,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		manager := plugin.NewManager()
-		plugins, err := manager.ListPlugins()
-		if err != nil {
-			return err
-		}
-		for _, p := range plugins {
-			fmt.Println(p)
-		}
-		return nil
-	},
-}
-
-var pluginRunCmd = &cobra.Command{
-	Use:   "run [plugin-name] [args...]",
-	Short: "Run an installed plugin",
-	Long:  `Run an installed Titanium plugin with the given arguments`,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		if len(args) == 0 {
-			return fmt.Errorf("plugin name is required")
-		}
-		manager := plugin.NewManager()
-		raw, err := manager.LoadPlugin(args[0])
-		if err != nil {
-			return err
-		}
-		plugin := raw.(plugin.Plugin)
-
-		result, err := plugin.Execute(args[1:])
-		if err != nil {
-			return err
-		}
-		fmt.Println(result)
-		return nil
-	},
-}
-
 func init() {
-	// Add build subcommands
-	buildCmd.AddCommand(buildGoCmd)
-	buildCmd.AddCommand(buildPackCmd)
+	// Create CLI instance
+	cliInstance = cli.NewCLI()
 
-	// Add plugin subcommands
-	pluginCmd.AddCommand(pluginInstallCmd)
-	pluginCmd.AddCommand(pluginListCmd)
-	pluginCmd.AddCommand(pluginRunCmd)
+	// Register commands
+	ti.RegisterPluginCommands(cliInstance)
 
 	// Add commands to root
 	rootCmd.AddCommand(buildCmd)
-	rootCmd.AddCommand(pluginCmd)
+	buildCmd.AddCommand(buildGoCmd)
+	buildCmd.AddCommand(buildPackCmd)
+
+	// Add plugin commands
+	pluginCmd := cliInstance.GetCommand("plugin")
+	if pluginCmd != nil {
+		rootCmd.AddCommand(pluginCmd)
+	}
 }
 
 func main() {
-	// Initialize Docker client with specific API version
-	dockerCli, err := client.NewClientWithOpts(
-		client.FromEnv,
-		client.WithVersion("1.48"),
-	)
-	if err != nil {
-		log.Fatalf("Failed to create Docker client: %v", err)
-	}
-	defer dockerCli.Close()
-
-	// Create CLI instance
-	cliInstance = cli.New(dockerCli)
-
-	// Register commands
-	ti.RegisterBuildCommands(cliInstance)
-	ti.RegisterPluginCommands(cliInstance)
-
-	// Execute the root command
 	if err := rootCmd.Execute(); err != nil {
+		fmt.Println(err)
 		os.Exit(1)
 	}
 }
