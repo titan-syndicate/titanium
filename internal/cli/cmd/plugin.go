@@ -5,12 +5,12 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/titan-syndicate/titanium/internal/cli"
-	"github.com/titan-syndicate/titanium/internal/plugin"
+	pluginhost "github.com/titan-syndicate/titanium/internal/pluginhost"
 )
 
 // RegisterPluginCommands registers all plugin-related commands
 func RegisterPluginCommands(cliApp *cli.CLI) {
-	pluginManager := plugin.NewManager()
+	pluginManager := pluginhost.NewManager()
 
 	cliApp.RegisterCommand(cli.Command{
 		Name:        "plugin",
