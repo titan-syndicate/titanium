@@ -9,7 +9,6 @@ import (
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/image"
-	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/spf13/cobra"
 	"github.com/titan-syndicate/titanium/internal/cli"
@@ -53,30 +52,27 @@ var buildPackCmd = &cobra.Command{
 }
 
 func init() {
-	// Add build subcommands
+	// Create CLI instance
+	cliInstance = cli.NewCLI()
+
+	// Register commands
+	ti.RegisterPluginCommands(cliInstance)
+
+	// Add commands to root
+	rootCmd.AddCommand(buildCmd)
 	buildCmd.AddCommand(buildGoCmd)
 	buildCmd.AddCommand(buildPackCmd)
 
-	// Add build command to root
-	rootCmd.AddCommand(buildCmd)
+	// Add plugin commands
+	pluginCmd := cliInstance.GetCommand("plugin")
+	if pluginCmd != nil {
+		rootCmd.AddCommand(pluginCmd)
+	}
 }
 
 func main() {
-	// Initialize Docker client with specific API version
-	dockerCli, err := client.NewClientWithOpts(
-		client.FromEnv,
-		client.WithVersion("1.48"),
-	)
-	if err != nil {
-		log.Fatalf("Failed to create Docker client: %v", err)
-	}
-	defer dockerCli.Close()
-
-	// Create CLI instance
-	cliInstance = cli.New(dockerCli)
-
-	// Execute the root command
 	if err := rootCmd.Execute(); err != nil {
+		fmt.Println(err)
 		os.Exit(1)
 	}
 }
