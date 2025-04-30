@@ -12,7 +12,7 @@ type GRPCPluginServer struct {
 }
 
 func (s *GRPCPluginServer) Name(ctx context.Context, req *test.Empty) (*test.NameResponse, error) {
-	return &test.NameResponse{Name: "test-plugin"}, nil
+	return &test.NameResponse{Name: "ti-example-plugin"}, nil
 }
 
 func (s *GRPCPluginServer) Version(ctx context.Context, req *test.Empty) (*test.VersionResponse, error) {

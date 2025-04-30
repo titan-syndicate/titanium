@@ -17,7 +17,7 @@ type TestPlugin struct{}
 // Name returns the name of the plugin
 func (p *TestPlugin) Name() string {
 	log.Println("[PLUGIN] Name() called")
-	return "test-plugin"
+	return "ti-example-plugin"
 }
 
 // Version returns the version of the plugin

@@ -130,7 +130,7 @@ func (m *Manager) LoadPlugin(name string) (types.Plugin, error) {
 			"test": &test.TestPluginGRPC{Impl: &test.TestPlugin{}},
 		},
 		// Cmd: exec.Command("sh", "-c", pluginPath),
-		Cmd:              exec.Command("sh", "-c", "./test-plugin"),
+		Cmd:              exec.Command("sh", "-c", "./ti-example-plugin"),
 		AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
 	})
 
