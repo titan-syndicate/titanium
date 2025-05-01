@@ -27,6 +27,23 @@ func RegisterPluginCommands(cliApp *cli.CLI) {
 				},
 			},
 			{
+				Name:        "uninstall",
+				Description: "Uninstall a plugin",
+				RunE: func(cmd *cobra.Command, args []string) error {
+					if len(args) == 0 {
+						return fmt.Errorf("plugin name is required")
+					}
+					return pluginManager.UninstallPlugin(args[0])
+				},
+			},
+			{
+				Name:        "uninstall-all",
+				Description: "Uninstall all plugins",
+				RunE: func(cmd *cobra.Command, args []string) error {
+					return pluginManager.UninstallAllPlugins()
+				},
+			},
+			{
 				Name:        "list",
 				Description: "List installed plugins",
 				RunE: func(cmd *cobra.Command, args []string) error {
