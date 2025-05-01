@@ -1,12 +1,16 @@
 package pluginhost
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
+	"strings"
 
 	"github.com/hashicorp/go-plugin"
 )
@@ -40,7 +44,7 @@ func NewManager() *Manager {
 	}
 }
 
-// InstallPlugin installs a plugin from a local binary
+// InstallPlugin installs a plugin from a local binary or GitHub release
 func (m *Manager) InstallPlugin(pluginPath string) error {
 	log.Printf("[MANAGER] Installing plugin from %s", pluginPath)
 
@@ -54,13 +58,27 @@ func (m *Manager) InstallPlugin(pluginPath string) error {
 	pluginName := filepath.Base(pluginPath)
 	log.Printf("[MANAGER] Plugin name: %s", pluginName)
 
-	// Open source file
-	src, err := os.Open(pluginPath)
-	if err != nil {
-		log.Printf("[MANAGER] Failed to open source file: %v", err)
-		return fmt.Errorf("failed to open source file: %v", err)
+	var src io.ReadCloser
+	var err error
+
+	// Check if this is a GitHub repository
+	if strings.HasPrefix(pluginPath, "github.com/") {
+		log.Printf("[MANAGER] Detected GitHub repository: %s", pluginPath)
+		src, err = m.downloadFromGitHub(pluginPath)
+		if err != nil {
+			log.Printf("[MANAGER] Failed to download from GitHub: %v", err)
+			return fmt.Errorf("failed to download from GitHub: %v", err)
+		}
+		defer src.Close()
+	} else {
+		// Open source file
+		src, err = os.Open(pluginPath)
+		if err != nil {
+			log.Printf("[MANAGER] Failed to open source file: %v", err)
+			return fmt.Errorf("failed to open source file: %v", err)
+		}
+		defer src.Close()
 	}
-	defer src.Close()
 
 	// Create destination file
 	destPath := filepath.Join(m.pluginDir, pluginName)
@@ -86,6 +104,153 @@ func (m *Manager) InstallPlugin(pluginPath string) error {
 
 	log.Printf("[MANAGER] Successfully installed plugin %s", pluginName)
 	return nil
+}
+
+// UninstallPlugin removes a plugin by name
+func (m *Manager) UninstallPlugin(name string) error {
+	log.Printf("[MANAGER] Uninstalling plugin %s", name)
+	pluginPath := m.GetPluginPath(name)
+
+	// Check if plugin exists
+	if _, err := os.Stat(pluginPath); os.IsNotExist(err) {
+		log.Printf("[MANAGER] Plugin not found: %s", name)
+		return fmt.Errorf("plugin not found: %s", name)
+	}
+
+	// Remove the plugin
+	if err := os.Remove(pluginPath); err != nil {
+		log.Printf("[MANAGER] Failed to remove plugin: %v", err)
+		return fmt.Errorf("failed to remove plugin: %v", err)
+	}
+
+	log.Printf("[MANAGER] Successfully uninstalled plugin %s", name)
+	return nil
+}
+
+// UninstallAllPlugins removes all installed plugins
+func (m *Manager) UninstallAllPlugins() error {
+	log.Printf("[MANAGER] Uninstalling all plugins")
+	plugins, err := m.ListPlugins()
+	if err != nil {
+		return err
+	}
+
+	for _, plugin := range plugins {
+		if err := m.UninstallPlugin(plugin); err != nil {
+			log.Printf("[MANAGER] Failed to uninstall plugin %s: %v", plugin, err)
+			// Continue with other plugins even if one fails
+		}
+	}
+
+	log.Printf("[MANAGER] Successfully uninstalled all plugins")
+	return nil
+}
+
+// downloadFromGitHub downloads the latest release from a GitHub repository
+func (m *Manager) downloadFromGitHub(repo string) (io.ReadCloser, error) {
+	// Split the repository path
+	parts := strings.Split(repo, "/")
+	if len(parts) != 3 {
+		return nil, fmt.Errorf("invalid GitHub repository format: %s", repo)
+	}
+	owner, repo := parts[1], parts[2]
+
+	// Get the latest release
+	url := fmt.Sprintf("https://api.github.com/repos/%s/%s/releases/latest", owner, repo)
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get latest release: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed to get latest release: %s", resp.Status)
+	}
+
+	// Parse the release response
+	var release struct {
+		TagName string `json:"tag_name"`
+		Assets  []struct {
+			Name string `json:"name"`
+			URL  string `json:"browser_download_url"`
+		} `json:"assets"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&release); err != nil {
+		return nil, fmt.Errorf("failed to parse release response: %v", err)
+	}
+
+	// Get plugin name from repo
+	pluginName := repo
+
+	// Determine the correct archive name for this platform
+	var archiveName string
+	switch {
+	case runtime.GOOS == "darwin" && runtime.GOARCH == "arm64":
+		archiveName = fmt.Sprintf("%s_%s_darwin_arm64.tar.gz", pluginName, strings.TrimPrefix(release.TagName, "v"))
+	case runtime.GOOS == "darwin" && runtime.GOARCH == "amd64":
+		archiveName = fmt.Sprintf("%s_%s_darwin_amd64.tar.gz", pluginName, strings.TrimPrefix(release.TagName, "v"))
+	case runtime.GOOS == "linux" && runtime.GOARCH == "amd64":
+		archiveName = fmt.Sprintf("%s_%s_linux_amd64.tar.gz", pluginName, strings.TrimPrefix(release.TagName, "v"))
+	default:
+		return nil, fmt.Errorf("unsupported platform: %s/%s", runtime.GOOS, runtime.GOARCH)
+	}
+
+	// Find the archive asset
+	var archiveURL string
+	for _, asset := range release.Assets {
+		if asset.Name == archiveName {
+			archiveURL = asset.URL
+			break
+		}
+	}
+	if archiveURL == "" {
+		return nil, fmt.Errorf("no archive found for platform %s/%s", runtime.GOOS, runtime.GOARCH)
+	}
+
+	// Download the archive
+	resp, err = http.Get(archiveURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to download archive: %v", err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		resp.Body.Close()
+		return nil, fmt.Errorf("failed to download archive: %s", resp.Status)
+	}
+	defer resp.Body.Close()
+
+	// Create a temporary directory
+	tmpDir, err := os.MkdirTemp("", "titanium-plugin-*")
+	if err != nil {
+		return nil, fmt.Errorf("failed to create temp directory: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	// Save the archive to a temporary file
+	archivePath := filepath.Join(tmpDir, archiveName)
+	archiveFile, err := os.Create(archivePath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create archive file: %v", err)
+	}
+	if _, err := io.Copy(archiveFile, resp.Body); err != nil {
+		archiveFile.Close()
+		return nil, fmt.Errorf("failed to save archive: %v", err)
+	}
+	archiveFile.Close()
+
+	// Extract the archive
+	cmd := exec.Command("tar", "-xzf", archivePath, "-C", tmpDir)
+	if err := cmd.Run(); err != nil {
+		return nil, fmt.Errorf("failed to extract archive: %v", err)
+	}
+
+	// Open the extracted binary
+	binaryPath := filepath.Join(tmpDir, pluginName)
+	binaryFile, err := os.Open(binaryPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open extracted binary: %v", err)
+	}
+
+	return binaryFile, nil
 }
 
 // ListPlugins returns a list of installed plugins

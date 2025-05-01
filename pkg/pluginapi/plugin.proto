@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package pluginapi;
+
+option go_package = "github.com/titan-syndicate/titanium-plugin-api/pluginapi";
+
+// Plugin is the interface that all plugins must implement
+service Plugin {
+  // Name returns the name of the plugin
+  rpc Name(Empty) returns (NameResponse) {}
+
+  // Version returns the version of the plugin
+  rpc Version(Empty) returns (VersionResponse) {}
+
+  // Execute runs the plugin's main functionality
+  rpc Execute(ExecuteRequest) returns (ExecuteResponse) {}
+}
+
+// Empty is used for requests that don't need any parameters
+message Empty {}
+
+// NameResponse is the response from the Name RPC
+message NameResponse {
+  string name = 1;
+}
+
+// VersionResponse is the response from the Version RPC
+message VersionResponse {
+  string version = 1;
+}
+
+// ExecuteRequest is the request for the Execute RPC
+message ExecuteRequest {
+  repeated string args = 1;
+}
+
+// ExecuteResponse is the response from the Execute RPC
+message ExecuteResponse {
+  string result = 1;
+}
