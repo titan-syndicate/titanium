@@ -84,7 +84,7 @@ changelog:
       - "^ci:"
       - "^chore:"
 
-docker:
+dockers:
   - image_templates:
       - "rianfowler/project-orca:{{ .Version }}"
       - "rianfowler/project-orca:latest"
@@ -104,4 +104,5 @@ dockerhub:
       - rianfowler/project-orca
     description: "Project Orca - A powerful CLI tool"
     full_description:
-      from_file: DOCKER.md
+      from_file:
+        path: ./DOCKER.md
