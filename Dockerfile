@@ -1,48 +1,13 @@
-# Build stage
-FROM golang:1.22-alpine AS builder
+FROM alpine:latest
 
-# Install build dependencies
-RUN apk add --no-cache git
+# Install CA certificates (if your CLI needs HTTPS support)
+RUN apk add --no-cache ca-certificates
 
-# Set working directory
-WORKDIR /build
+# Copy the CLI binary into the container
+COPY demp /usr/local/bin/demp
 
-# Copy go mod files
-COPY go.mod go.sum ./
-RUN go mod download
+# Make sure the binary is executable
+RUN chmod +x /usr/local/bin/demp
 
-# Copy source code
-COPY . .
-
-# Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -o /build/ti ./cmd/titanium/main.go
-
-# Final stage
-FROM alpine:3.19
-
-# Install runtime dependencies
-RUN apk add --no-cache ca-certificates tzdata
-
-# Create non-root user
-RUN adduser -D -g '' appuser
-
-# Set working directory
-WORKDIR /app
-
-# Copy binary from builder
-COPY --from=builder /build/ti /app/ti
-
-# Copy config template
-COPY config.yaml /etc/titanium/config.yaml
-
-# Set ownership
-RUN chown -R appuser:appuser /app /etc/titanium
-
-# Switch to non-root user
-USER appuser
-
-# Set entrypoint
-ENTRYPOINT ["/app/ti"]
-
-# Default command
-CMD ["--help"]
+# Set the entrypoint so that any container arguments are passed to the CLI
+ENTRYPOINT ["/usr/local/bin/ti"]
