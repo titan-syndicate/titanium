@@ -83,3 +83,25 @@ changelog:
       - "^test:"
       - "^ci:"
       - "^chore:"
+
+docker:
+  - image_templates:
+      - "rianfowler/project-orca:{{ .Version }}"
+      - "rianfowler/project-orca:latest"
+    dockerfile: Dockerfile
+    use: buildx
+    build_flag_templates:
+      - "--platform=linux/amd64"
+      - "--platform=linux/arm64"
+    extra_files:
+      - LICENSE
+      - README.md
+
+dockerhub:
+  - username: "rianfowler"
+    secret_name: DOCKERHUB_PAT
+    images:
+      - rianfowler/project-orca
+    description: "Project Orca - A powerful CLI tool"
+    full_description:
+      from_file: DOCKER.md
