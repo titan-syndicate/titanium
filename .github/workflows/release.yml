@@ -21,6 +21,12 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: rianfowler
+          password: ${{ secrets.DOCKER_PAT }}
+
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:
@@ -28,7 +34,6 @@ jobs:
           distribution: goreleaser-pro
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          DOCKERHUB_PAT: ${{ secrets.DOCKER_PAT }}
           GORELEASER_KEY: ${{ secrets.GORELEASER_PRO_KEY }}
           # Ensure we create a full release, not a prerelease
           GORELEASER_CURRENT_TAG: ${{ github.ref_name }}

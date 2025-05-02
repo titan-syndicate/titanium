@@ -118,6 +118,12 @@ jobs:
           ref: ${{ steps.create_rc.outputs.tag }}
           fetch-depth: 0
 
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: rianfowler
+          password: ${{ secrets.DOCKER_PAT }}
+
       - name: Run GoReleaser
         id: goreleaser
         uses: goreleaser/goreleaser-action@v6
@@ -126,7 +132,6 @@ jobs:
           distribution: goreleaser-pro
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          DOCKERHUB_PAT: ${{ secrets.DOCKER_PAT }}
           # Add skip_prerelease flag to GoReleaser if needed
           SKIP_PRERELEASE: ${{ github.event.inputs.skip_prerelease }}
           GORELEASER_KEY: ${{ secrets.GORELEASER_PRO_KEY }}
