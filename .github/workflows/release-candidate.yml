@@ -126,6 +126,7 @@ jobs:
           distribution: goreleaser-pro
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DOCKERHUB_PAT: ${{ secrets.DOCKER_PAT }}
           # Add skip_prerelease flag to GoReleaser if needed
           SKIP_PRERELEASE: ${{ github.event.inputs.skip_prerelease }}
           GORELEASER_KEY: ${{ secrets.GORELEASER_PRO_KEY }}
