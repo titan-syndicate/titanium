@@ -123,6 +123,7 @@ jobs:
         uses: goreleaser/goreleaser-action@v6
         with:
           args: release
+          distribution: goreleaser-pro
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Add skip_prerelease flag to GoReleaser if needed
