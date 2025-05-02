@@ -28,8 +28,8 @@ jobs:
           distribution: goreleaser-pro
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          DOCKERHUB_PAT: ${{ secrets.DOCKERHUB_PAT }}
-          GORELEASER_KEY: ${{ secrets.GORELEASER_PRO_TOKEN }}
+          DOCKERHUB_PAT: ${{ secrets.DOCKER_PAT }}
+          GORELEASER_KEY: ${{ secrets.GORELEASER_PRO_KEY }}
           # Ensure we create a full release, not a prerelease
           GORELEASER_CURRENT_TAG: ${{ github.ref_name }}
           GORELEASER_PREVIOUS_TAG: ${{ github.ref_name }}
