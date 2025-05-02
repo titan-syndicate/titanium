@@ -128,7 +128,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Add skip_prerelease flag to GoReleaser if needed
           SKIP_PRERELEASE: ${{ github.event.inputs.skip_prerelease }}
-          GORELEASER_PRO_TOKEN: ${{ secrets.GORELEASER_PRO_TOKEN }}
+          GORELEASER_KEY: ${{ secrets.GORELEASER_PRO_TOKEN }}
 
       - name: Ensure prerelease status
         if: ${{ github.event.inputs.skip_prerelease != 'true' }}
