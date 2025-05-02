@@ -25,6 +25,7 @@ jobs:
         uses: goreleaser/goreleaser-action@v6
         with:
           args: release --clean
+          distribution: goreleaser-pro
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DOCKERHUB_PAT: ${{ secrets.DOCKERHUB_PAT }}
