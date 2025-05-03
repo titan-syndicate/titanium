@@ -99,3 +99,39 @@ dockerhub:
     full_description:
       from_file:
         path: ./DOCKER.md
+
+brews:
+  - name: titanium
+    alternative_names:
+      - titanium@{{ .Version }}
+      - titanium@{{ .Major }}
+
+    # use Darwin + Linux builds (omit Windows)
+    ids:
+      - darwin_amd64
+      - darwin_arm64
+      - linux_amd64
+      - linux_arm64
+
+    homepage: "https://github.com/titan-syndicate/titanium"
+    description: "Titanium CLI (ti): powerful toolkit for platform operations"
+    license: "MIT"
+
+    # point at each release artifact (artifact names include OS/Arch)
+    url_template: "https://github.com/titan-syndicate/titanium/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
+
+    directory: Formula
+
+    commit_author:
+      name: "github-actions[bot]"
+      email: "41898282+github-actions[bot]@users.noreply.github.com"
+    commit_msg_template: "Brew formula update for {{ .ProjectName }} version {{ .Tag }}"
+
+    repository:
+      owner: titan-syndicate
+      name: homebrew-titanium
+
+    install: |
+      bin.install "ti"
+    test: |
+      system "#{bin}/ti", "--version"
