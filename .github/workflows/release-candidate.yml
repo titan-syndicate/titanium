@@ -124,6 +124,33 @@ jobs:
           username: rianfowler
           password: ${{ secrets.DOCKER_PAT }}
 
+      # Decode and install your deploy key into ssh-agent
+      - name: Configure SSH for Homebrew Tap
+        env:
+          DEPLOY_KEY_B64: ${{ secrets.BREW_DEPLOY_KEY }}
+        run: |
+          # prepare ssh dir
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+
+          # decode the key and add it
+          echo "$DEPLOY_KEY_B64" | base64 --decode > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+
+          # start the agent & add the key
+          eval "$(ssh-agent -s)"
+          ssh-add ~/.ssh/id_rsa
+
+          # trust GitHub’s host key (so checkout won’t prompt)
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+
+      # Now you can checkout the tap repo over SSH
+      - name: Checkout Homebrew tap
+        uses: actions/checkout@v4
+        with:
+          repository: titan-syndicate/homebrew-titanium
+          path: homebrew-titanium
+
       - name: Run GoReleaser
         id: goreleaser
         uses: goreleaser/goreleaser-action@v6
@@ -132,7 +159,7 @@ jobs:
           distribution: goreleaser-pro
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Add skip_prerelease flag to GoReleaser if needed
+          # TODO: determine if we need to set this
           SKIP_PRERELEASE: ${{ github.event.inputs.skip_prerelease }}
           GORELEASER_KEY: ${{ secrets.GORELEASER_PRO_KEY }}
 
