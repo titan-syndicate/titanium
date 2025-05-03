@@ -1,13 +1,23 @@
-FROM alpine:latest
+# Use a full-featured base with bash, curl, etc.
+FROM ubuntu:24.04
 
-# Install CA certificates (if your CLI needs HTTPS support)
-RUN apk add --no-cache
+# install common tools + HTTPS support
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends \
+  bash \
+  ca-certificates \
+  curl \
+  less \
+  vim \
+  && rm -rf /var/lib/apt/lists/*
 
-# Copy the CLI binary into the container
+# copy your CLI into place
 COPY ti /usr/local/bin/ti
-
-# Make sure the binary is executable
 RUN chmod +x /usr/local/bin/ti
 
-# Set the entrypoint so that any container arguments are passed to the CLI
-ENTRYPOINT ["/usr/local/bin/ti"]
+# ensure it's on the PATH
+ENV PATH="/usr/local/bin:${PATH}"
+
+# default to an interactive bash shell
+# if you pass "ti ..." as args, it'll run your CLI instead
+CMD ["bash"]
