@@ -59,11 +59,11 @@ builds:
       - CGO_ENABLED=0
 
 archives:
-  - format: tar.gz
+  - name_template: >-
+      {{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}
     format_overrides:
       - goos: windows
         format: zip
-    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
     files:
       - LICENSE
       - README.md
@@ -99,3 +99,30 @@ dockerhub:
     full_description:
       from_file:
         path: ./DOCKER.md
+
+brews:
+  - name: titanium
+    homepage: "https://github.com/titan-syndicate/titanium"
+    description: "Titanium CLI (ti): powerful toolkit for platform operations"
+    license: "MIT"
+    url_template: "https://github.com/titan-syndicate/titanium/releases/download/{{ .Tag }}/{{ .ArtifactName }}"
+    directory: Formula
+    commit_author:
+      name: "github-actions[bot]"
+      email: "41898282+github-actions[bot]@users.noreply.github.com"
+    commit_msg_template: "Brew formula update for {{ .ProjectName }} version {{ .Tag }}"
+    repository:
+      owner: titan-syndicate
+      name: homebrew-titanium
+
+    # use Darwin + Linux builds (omit Windows)
+    ids:
+      - darwin_amd64
+      - darwin_arm64
+      - linux_amd64
+      - linux_arm64
+
+    install: |
+      bin.install "ti"
+    test: |
+      system "#{bin}/ti", "--version"
