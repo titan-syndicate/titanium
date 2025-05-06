@@ -364,3 +364,24 @@ func (m *Manager) Cleanup() {
 		client.Kill()
 	}
 }
+
+// GetPluginNames returns a map of plugin names to their paths
+func (m *Manager) GetPluginNames() (map[string]string, error) {
+	log.Printf("[MANAGER] Getting plugin names from directory: %s", m.pluginDir)
+	plugins, err := m.ListPlugins()
+	if err != nil {
+		log.Printf("[MANAGER] Error listing plugins: %v", err)
+		return nil, err
+	}
+	log.Printf("[MANAGER] Found raw plugin list: %v", plugins)
+
+	pluginMap := make(map[string]string)
+	for _, plugin := range plugins {
+		// Remove the 'ti-' prefix if it exists
+		name := strings.TrimPrefix(plugin, "ti-")
+		log.Printf("[MANAGER] Mapping plugin %s to command name %s", plugin, name)
+		pluginMap[name] = plugin
+	}
+	log.Printf("[MANAGER] Final plugin map: %v", pluginMap)
+	return pluginMap, nil
+}

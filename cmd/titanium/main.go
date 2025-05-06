@@ -79,6 +79,16 @@ func init() {
 	if pluginCmd != nil {
 		rootCmd.AddCommand(pluginCmd)
 	}
+
+	// Add all registered commands to root
+	for name := range cliInstance.GetCommands() {
+		if name != "plugin" { // Skip the plugin command as it's already added
+			if cmd := cliInstance.GetCommand(name); cmd != nil {
+				log.Printf("[MAIN] Adding command to root: %s", name)
+				rootCmd.AddCommand(cmd)
+			}
+		}
+	}
 }
 
 func main() {

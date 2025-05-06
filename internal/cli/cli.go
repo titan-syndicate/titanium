@@ -113,3 +113,8 @@ func (c *CLI) PrintUsage() {
 func (c *CLI) GetDockerClient() *client.Client {
 	return c.dockerCli
 }
+
+// GetCommands returns a map of all registered commands
+func (c *CLI) GetCommands() map[string]Command {
+	return c.commands
+}
