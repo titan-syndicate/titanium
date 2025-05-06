@@ -124,13 +124,13 @@ brews:
       owner: titan-syndicate
       name: homebrew-titanium
 
-    # use Darwin + Linux builds (omit Windows)
-    ids:
-      - darwin_amd64
-      - darwin_arm64
-      - linux_amd64
-      - linux_arm64
-      - linux_arm
+    # # use Darwin + Linux builds (omit Windows)
+    # ids:
+    #   - darwin_amd64
+    #   - darwin_arm64
+    #   - linux_amd64
+    #   - linux_arm64
+    #   - linux_arm
 
     install: |
       bin.install "ti"
