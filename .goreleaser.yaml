@@ -13,6 +13,11 @@ builds:
     binary: ti
     env:
       - CGO_ENABLED=1
+    ldflags:
+      - -s -w
+      - -X github.com/titan-syndicate/titanium/internal/version.Version={{.Version}}
+      - -X github.com/titan-syndicate/titanium/internal/version.Commit={{.ShortCommit}}
+      - -X github.com/titan-syndicate/titanium/internal/version.BuildTime={{.Date}}
 
   # Build for macOS ARM (Apple Silicon)
   - id: darwin_arm64
@@ -24,6 +29,11 @@ builds:
     binary: ti
     env:
       - CGO_ENABLED=1
+    ldflags:
+      - -s -w
+      - -X github.com/titan-syndicate/titanium/internal/version.Version={{.Version}}
+      - -X github.com/titan-syndicate/titanium/internal/version.Commit={{.ShortCommit}}
+      - -X github.com/titan-syndicate/titanium/internal/version.BuildTime={{.Date}}
 
   # Build for Linux AMD64
   - id: linux_amd64
@@ -35,6 +45,11 @@ builds:
     binary: ti
     env:
       - CGO_ENABLED=0
+    ldflags:
+      - -s -w
+      - -X github.com/titan-syndicate/titanium/internal/version.Version={{.Version}}
+      - -X github.com/titan-syndicate/titanium/internal/version.Commit={{.ShortCommit}}
+      - -X github.com/titan-syndicate/titanium/internal/version.BuildTime={{.Date}}
 
   # Build for Linux ARM64
   - id: linux_arm64
@@ -46,6 +61,11 @@ builds:
     binary: ti
     env:
       - CGO_ENABLED=0
+    ldflags:
+      - -s -w
+      - -X github.com/titan-syndicate/titanium/internal/version.Version={{.Version}}
+      - -X github.com/titan-syndicate/titanium/internal/version.Commit={{.ShortCommit}}
+      - -X github.com/titan-syndicate/titanium/internal/version.BuildTime={{.Date}}
 
   - id: linux_arm
     main: cmd/titanium/main.go
@@ -55,6 +75,11 @@ builds:
     env:
       - CGO_ENABLED=0
     binary: ti
+    ldflags:
+      - -s -w
+      - -X github.com/titan-syndicate/titanium/internal/version.Version={{.Version}}
+      - -X github.com/titan-syndicate/titanium/internal/version.Commit={{.ShortCommit}}
+      - -X github.com/titan-syndicate/titanium/internal/version.BuildTime={{.Date}}
 
   # Build for Windows AMD64
   - id: windows_amd64
@@ -66,6 +91,11 @@ builds:
     binary: ti.exe
     env:
       - CGO_ENABLED=0
+    ldflags:
+      - -s -w
+      - -X github.com/titan-syndicate/titanium/internal/version.Version={{.Version}}
+      - -X github.com/titan-syndicate/titanium/internal/version.Commit={{.ShortCommit}}
+      - -X github.com/titan-syndicate/titanium/internal/version.BuildTime={{.Date}}
 
 archives:
   - name_template: >-

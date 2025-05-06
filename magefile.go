@@ -4,8 +4,10 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
+	"time"
 
 	"github.com/magefile/mage/mg"
 	"github.com/magefile/mage/sh"
@@ -48,6 +50,38 @@ func (Build) All() error {
 		return err
 	}
 	return sh.Run("go", "build", "-o", "bin/ti", "cmd/titanium/main.go")
+}
+
+// Build and test version flag
+func (Build) Test() error {
+	if err := os.MkdirAll("bin", 0755); err != nil {
+		return err
+	}
+	return sh.Run("go", "build", "-o", "bin/ti", "cmd/titanium/main.go")
+}
+
+// Build with version information
+func (Build) Version() error {
+	if err := os.MkdirAll("bin", 0755); err != nil {
+		return err
+	}
+
+	// Get git commit hash
+	commit, err := sh.Output("git", "rev-parse", "--short", "HEAD")
+	if err != nil {
+		return err
+	}
+
+	// Get current time
+	now := time.Now().Format(time.RFC3339)
+
+	ldflags := fmt.Sprintf(
+		"-X github.com/titan-syndicate/titanium/internal/version.Version=dev -X github.com/titan-syndicate/titanium/internal/version.Commit=%s -X github.com/titan-syndicate/titanium/internal/version.BuildTime=%s",
+		commit,
+		now,
+	)
+
+	return sh.Run("go", "build", "-ldflags", ldflags, "-o", "bin/ti", "cmd/titanium/main.go")
 }
 
 // Run tests

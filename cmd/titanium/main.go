@@ -13,6 +13,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/titan-syndicate/titanium/internal/cli"
 	cmd "github.com/titan-syndicate/titanium/internal/cli/cmd"
+	"github.com/titan-syndicate/titanium/internal/version"
 )
 
 var (
@@ -20,6 +21,12 @@ var (
 		Use:   "titanium",
 		Short: "Titanium CLI",
 		Long:  `Titanium CLI for building and managing applications`,
+		Run: func(cmd *cobra.Command, args []string) {
+			// If no arguments are provided, show help
+			if len(args) == 0 {
+				cmd.Help()
+			}
+		},
 	}
 	cliInstance *cli.CLI
 )
@@ -54,6 +61,10 @@ var buildPackCmd = &cobra.Command{
 func init() {
 	// Create CLI instance
 	cliInstance = cli.NewCLI()
+
+	// Add version flag
+	rootCmd.Version = version.String()
+	rootCmd.SetVersionTemplate(`{{.Version}}` + "\n")
 
 	// Register commands
 	cmd.RegisterPluginCommands(cliInstance)
