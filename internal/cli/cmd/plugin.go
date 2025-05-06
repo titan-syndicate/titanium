@@ -58,8 +58,9 @@ func RegisterPluginCommands(cliApp *cli.CLI) {
 				},
 			},
 			{
-				Name:        "exec",
-				Description: "Execute a plugin",
+				Name:               "exec",
+				Description:        "Execute a plugin",
+				DisableFlagParsing: true, // Add this line
 				RunE: func(cmd *cobra.Command, args []string) error {
 					if len(args) < 1 {
 						return fmt.Errorf("plugin name is required")
