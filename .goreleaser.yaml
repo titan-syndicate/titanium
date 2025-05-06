@@ -119,6 +119,9 @@ brews:
     commit_author:
       name: "github-actions[bot]"
       email: "41898282+github-actions[bot]@users.noreply.github.com"
+    alternative_names:
+      - titanium@{{ .Version }}
+      - titanium@{{ .Major }}
     commit_msg_template: "Brew formula update for {{ .ProjectName }} version {{ .Tag }}"
     repository:
       owner: titan-syndicate
