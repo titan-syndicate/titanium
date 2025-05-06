@@ -47,6 +47,15 @@ builds:
     env:
       - CGO_ENABLED=0
 
+  - id: linux_arm
+    main: cmd/titanium/main.go
+    goos: [linux]
+    goarch: [arm]
+    goarm: [6]
+    env:
+      - CGO_ENABLED=0
+    binary: ti
+
   # Build for Windows AMD64
   - id: windows_amd64
     main: cmd/titanium/main.go
@@ -121,6 +130,7 @@ brews:
       - darwin_arm64
       - linux_amd64
       - linux_arm64
+      - linux_arm
 
     install: |
       bin.install "ti"
