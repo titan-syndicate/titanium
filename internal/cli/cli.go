@@ -15,11 +15,12 @@ type CLI struct {
 
 // Command represents a CLI command
 type Command struct {
-	Name        string
-	Description string
-	Run         func(cli *CLI, args []string) error
-	RunE        func(cmd *cobra.Command, args []string) error
-	Subcommands []Command
+	Name               string
+	Description        string
+	Run                func(cli *CLI, args []string) error
+	RunE               func(cmd *cobra.Command, args []string) error
+	Subcommands        []Command
+	DisableFlagParsing bool
 }
 
 // New creates a new CLI instance
@@ -45,17 +46,19 @@ func (c *CLI) GetCommand(name string) *cobra.Command {
 	}
 
 	cobraCmd := &cobra.Command{
-		Use:   cmd.Name,
-		Short: cmd.Description,
-		RunE:  cmd.RunE,
+		Use:                cmd.Name,
+		Short:              cmd.Description,
+		RunE:               cmd.RunE,
+		DisableFlagParsing: cmd.DisableFlagParsing,
 	}
 
 	// Add subcommands
 	for _, subcmd := range cmd.Subcommands {
 		subcobraCmd := &cobra.Command{
-			Use:   subcmd.Name,
-			Short: subcmd.Description,
-			RunE:  subcmd.RunE,
+			Use:                subcmd.Name,
+			Short:              subcmd.Description,
+			RunE:               subcmd.RunE,
+			DisableFlagParsing: subcmd.DisableFlagParsing,
 		}
 		cobraCmd.AddCommand(subcobraCmd)
 	}

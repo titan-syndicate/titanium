@@ -12,7 +12,7 @@ import (
 	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/spf13/cobra"
 	"github.com/titan-syndicate/titanium/internal/cli"
-	ti "github.com/titan-syndicate/titanium/internal/cli/cmd"
+	cmd "github.com/titan-syndicate/titanium/internal/cli/cmd"
 )
 
 var (
@@ -41,7 +41,7 @@ var buildGoCmd = &cobra.Command{
 	Use:   "go",
 	Short: "Build a Go application",
 	Long:  `Build a Go application using goreleaser`,
-	RunE:  ti.RunGoreleaser,
+	RunE:  cmd.RunGoreleaser,
 }
 
 var buildPackCmd = &cobra.Command{
@@ -56,7 +56,7 @@ func init() {
 	cliInstance = cli.NewCLI()
 
 	// Register commands
-	ti.RegisterPluginCommands(cliInstance)
+	cmd.RegisterPluginCommands(cliInstance)
 
 	// Add commands to root
 	rootCmd.AddCommand(buildCmd)
