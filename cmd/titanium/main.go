@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 
@@ -11,6 +10,7 @@ import (
 	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/spf13/cobra"
+	"github.com/titan-syndicate/titanium-plugin-sdk/pkg/logger"
 	"github.com/titan-syndicate/titanium/internal/cli"
 	cmd "github.com/titan-syndicate/titanium/internal/cli/cmd"
 	"github.com/titan-syndicate/titanium/internal/version"
@@ -20,7 +20,7 @@ var (
 	rootCmd = &cobra.Command{
 		Use:   "titanium",
 		Short: "Titanium CLI",
-		Long:  `Titanium CLI for building and managing applications`,
+		Long:  `Titanium CLI is a command-line interface for managing Titanium applications.`,
 		Run: func(cmd *cobra.Command, args []string) {
 			// If no arguments are provided, show help
 			if len(args) == 0 {
@@ -59,14 +59,13 @@ var buildPackCmd = &cobra.Command{
 }
 
 func init() {
-	// Create CLI instance
-	cliInstance = cli.NewCLI()
-
 	// Add version flag
 	rootCmd.Version = version.String()
 	rootCmd.SetVersionTemplate(`{{.Version}}` + "\n")
 
 	// Register commands
+	cmd.RegisterBuildCommands(cliInstance)
+	cmd.RegisterPackCommands(cliInstance)
 	cmd.RegisterPluginCommands(cliInstance)
 
 	// Add commands to root
@@ -74,17 +73,11 @@ func init() {
 	buildCmd.AddCommand(buildGoCmd)
 	buildCmd.AddCommand(buildPackCmd)
 
-	// Add plugin commands
-	pluginCmd := cliInstance.GetCommand("plugin")
-	if pluginCmd != nil {
-		rootCmd.AddCommand(pluginCmd)
-	}
-
 	// Add all registered commands to root
 	for name := range cliInstance.GetCommands() {
 		if name != "plugin" { // Skip the plugin command as it's already added
 			if cmd := cliInstance.GetCommand(name); cmd != nil {
-				log.Printf("[MAIN] Adding command to root: %s", name)
+				logger.Log.Info("[MAIN] Adding command to root: %s", name)
 				rootCmd.AddCommand(cmd)
 			}
 		}
@@ -92,8 +85,25 @@ func init() {
 }
 
 func main() {
+	// Initialize logger
+	if err := logger.Init(logger.Config{
+		Level:      "info",
+		PluginName: "titanium",
+	}); err != nil {
+		os.Exit(1)
+	}
+
+	// Initialize CLI
+	cliInstance = cli.NewCLI()
+
+	// Register commands
+	cmd.RegisterBuildCommands(cliInstance)
+	cmd.RegisterPackCommands(cliInstance)
+	cmd.RegisterPluginCommands(cliInstance)
+
+	// Execute root command
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
+		logger.Log.Error(err)
 		os.Exit(1)
 	}
 }
@@ -122,7 +132,7 @@ func runPack(cmd *cobra.Command, args []string) error {
 	imageName := "buildpacksio/pack:latest"
 	_, _, err = dockerCli.ImageInspectWithRaw(context.Background(), imageName)
 	if err != nil {
-		log.Printf("Pulling image %s...", imageName)
+		logger.Log.Info("Pulling image %s...", imageName)
 		out, err := dockerCli.ImagePull(context.Background(), imageName, image.PullOptions{})
 		if err != nil {
 			return fmt.Errorf("failed to pull image: %v", err)
@@ -196,7 +206,7 @@ func runPack(cmd *cobra.Command, args []string) error {
 
 	// Remove the container
 	if err := dockerCli.ContainerRemove(context.Background(), resp.ID, container.RemoveOptions{}); err != nil {
-		log.Printf("Warning: Failed to remove container: %v", err)
+		logger.Log.Warn("Failed to remove container: %v", err)
 	}
 
 	return nil

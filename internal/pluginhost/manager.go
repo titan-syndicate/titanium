@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"os/exec"
@@ -13,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/go-plugin"
+	"github.com/titan-syndicate/titanium-plugin-sdk/pkg/logger"
 )
 
 // PluginInterface is the interface that all plugins must implement
@@ -46,27 +46,27 @@ func NewManager() *Manager {
 
 // InstallPlugin installs a plugin from a local binary or GitHub release
 func (m *Manager) InstallPlugin(pluginPath string) error {
-	log.Printf("[MANAGER] Installing plugin from %s", pluginPath)
+	logger.Log.Info("[MANAGER] Installing plugin from %s", pluginPath)
 
 	// Create plugin directory if it doesn't exist
 	if err := os.MkdirAll(m.pluginDir, 0755); err != nil {
-		log.Printf("[MANAGER] Failed to create plugin directory: %v", err)
+		logger.Log.Error("[MANAGER] Failed to create plugin directory: %v", err)
 		return err
 	}
 
 	// Get plugin name from binary
 	pluginName := filepath.Base(pluginPath)
-	log.Printf("[MANAGER] Plugin name: %s", pluginName)
+	logger.Log.Info("[MANAGER] Plugin name: %s", pluginName)
 
 	var src io.ReadCloser
 	var err error
 
 	// Check if this is a GitHub repository
 	if strings.HasPrefix(pluginPath, "github.com/") {
-		log.Printf("[MANAGER] Detected GitHub repository: %s", pluginPath)
+		logger.Log.Info("[MANAGER] Detected GitHub repository: %s", pluginPath)
 		src, err = m.downloadFromGitHub(pluginPath)
 		if err != nil {
-			log.Printf("[MANAGER] Failed to download from GitHub: %v", err)
+			logger.Log.Error("[MANAGER] Failed to download from GitHub: %v", err)
 			return fmt.Errorf("failed to download from GitHub: %v", err)
 		}
 		defer src.Close()
@@ -74,7 +74,7 @@ func (m *Manager) InstallPlugin(pluginPath string) error {
 		// Open source file
 		src, err = os.Open(pluginPath)
 		if err != nil {
-			log.Printf("[MANAGER] Failed to open source file: %v", err)
+			logger.Log.Error("[MANAGER] Failed to open source file: %v", err)
 			return fmt.Errorf("failed to open source file: %v", err)
 		}
 		defer src.Close()
@@ -82,54 +82,54 @@ func (m *Manager) InstallPlugin(pluginPath string) error {
 
 	// Create destination file
 	destPath := filepath.Join(m.pluginDir, pluginName)
-	log.Printf("[MANAGER] Installing to %s", destPath)
+	logger.Log.Info("[MANAGER] Installing to %s", destPath)
 	dest, err := os.Create(destPath)
 	if err != nil {
-		log.Printf("[MANAGER] Failed to create destination file: %v", err)
+		logger.Log.Error("[MANAGER] Failed to create destination file: %v", err)
 		return fmt.Errorf("failed to create destination file: %v", err)
 	}
 	defer dest.Close()
 
 	// Copy the file
 	if _, err := io.Copy(dest, src); err != nil {
-		log.Printf("[MANAGER] Failed to copy file: %v", err)
+		logger.Log.Error("[MANAGER] Failed to copy file: %v", err)
 		return fmt.Errorf("failed to copy file: %v", err)
 	}
 
 	// Make the plugin executable
 	if err := os.Chmod(destPath, 0755); err != nil {
-		log.Printf("[MANAGER] Failed to make plugin executable: %v", err)
+		logger.Log.Error("[MANAGER] Failed to make plugin executable: %v", err)
 		return fmt.Errorf("failed to make plugin executable: %v", err)
 	}
 
-	log.Printf("[MANAGER] Successfully installed plugin %s", pluginName)
+	logger.Log.Info("[MANAGER] Successfully installed plugin %s", pluginName)
 	return nil
 }
 
 // UninstallPlugin removes a plugin by name
 func (m *Manager) UninstallPlugin(name string) error {
-	log.Printf("[MANAGER] Uninstalling plugin %s", name)
+	logger.Log.Info("[MANAGER] Uninstalling plugin %s", name)
 	pluginPath := m.GetPluginPath(name)
 
 	// Check if plugin exists
 	if _, err := os.Stat(pluginPath); os.IsNotExist(err) {
-		log.Printf("[MANAGER] Plugin not found: %s", name)
+		logger.Log.Warn("[MANAGER] Plugin not found: %s", name)
 		return fmt.Errorf("plugin not found: %s", name)
 	}
 
 	// Remove the plugin
 	if err := os.Remove(pluginPath); err != nil {
-		log.Printf("[MANAGER] Failed to remove plugin: %v", err)
+		logger.Log.Error("[MANAGER] Failed to remove plugin: %v", err)
 		return fmt.Errorf("failed to remove plugin: %v", err)
 	}
 
-	log.Printf("[MANAGER] Successfully uninstalled plugin %s", name)
+	logger.Log.Info("[MANAGER] Successfully uninstalled plugin %s", name)
 	return nil
 }
 
 // UninstallAllPlugins removes all installed plugins
 func (m *Manager) UninstallAllPlugins() error {
-	log.Printf("[MANAGER] Uninstalling all plugins")
+	logger.Log.Info("[MANAGER] Uninstalling all plugins")
 	plugins, err := m.ListPlugins()
 	if err != nil {
 		return err
@@ -137,12 +137,12 @@ func (m *Manager) UninstallAllPlugins() error {
 
 	for _, plugin := range plugins {
 		if err := m.UninstallPlugin(plugin); err != nil {
-			log.Printf("[MANAGER] Failed to uninstall plugin %s: %v", plugin, err)
+			logger.Log.Error("[MANAGER] Failed to uninstall plugin %s: %v", plugin, err)
 			// Continue with other plugins even if one fails
 		}
 	}
 
-	log.Printf("[MANAGER] Successfully uninstalled all plugins")
+	logger.Log.Info("[MANAGER] Successfully uninstalled all plugins")
 	return nil
 }
 
@@ -255,14 +255,14 @@ func (m *Manager) downloadFromGitHub(repo string) (io.ReadCloser, error) {
 
 // ListPlugins returns a list of installed plugins
 func (m *Manager) ListPlugins() ([]string, error) {
-	log.Printf("[MANAGER] Listing plugins in %s", m.pluginDir)
+	logger.Log.Info("[MANAGER] Listing plugins in %s", m.pluginDir)
 	entries, err := os.ReadDir(m.pluginDir)
 	if err != nil {
 		if os.IsNotExist(err) {
-			log.Printf("[MANAGER] Plugin directory does not exist")
+			logger.Log.Info("[MANAGER] Plugin directory does not exist")
 			return []string{}, nil
 		}
-		log.Printf("[MANAGER] Failed to read plugin directory: %v", err)
+		logger.Log.Error("[MANAGER] Failed to read plugin directory: %v", err)
 		return nil, err
 	}
 
@@ -272,7 +272,7 @@ func (m *Manager) ListPlugins() ([]string, error) {
 			plugins = append(plugins, entry.Name())
 		}
 	}
-	log.Printf("[MANAGER] Found plugins: %v", plugins)
+	logger.Log.Info("[MANAGER] Found plugins: %v", plugins)
 	return plugins, nil
 }
 
@@ -283,17 +283,17 @@ func (m *Manager) GetPluginPath(name string) string {
 
 // LoadPlugin loads a plugin by name
 func (m *Manager) LoadPlugin(name string) (PluginInterface, error) {
-	log.Printf("[MANAGER] Loading plugin %s", name)
+	logger.Log.Info("[MANAGER] Loading plugin %s", name)
 	pluginPath := m.GetPluginPath(name)
-	log.Printf("[MANAGER] Plugin path: %s", pluginPath)
+	logger.Log.Info("[MANAGER] Plugin path: %s", pluginPath)
 
 	if _, err := os.Stat(pluginPath); os.IsNotExist(err) {
-		log.Printf("[MANAGER] Plugin not found: %s", name)
+		logger.Log.Info("[MANAGER] Plugin not found: %s", name)
 		return nil, fmt.Errorf("plugin not found: %s", name)
 	}
 
 	// Create a plugin client with gRPC support
-	log.Printf("[MANAGER] Creating plugin client")
+	logger.Log.Info("[MANAGER] Creating plugin client")
 	client := plugin.NewClient(&plugin.ClientConfig{
 		HandshakeConfig: HandshakeConfig,
 		Plugins: map[string]plugin.Plugin{
@@ -304,19 +304,19 @@ func (m *Manager) LoadPlugin(name string) (PluginInterface, error) {
 	})
 
 	// Connect to the plugin
-	log.Printf("[MANAGER] Connecting to plugin")
+	logger.Log.Info("[MANAGER] Connecting to plugin")
 	rpcClient, err := client.Client()
 	if err != nil {
-		log.Printf("[MANAGER] Failed to connect to plugin: %v", err)
+		logger.Log.Error("[MANAGER] Failed to connect to plugin: %v", err)
 		client.Kill()
 		return nil, fmt.Errorf("failed to connect to plugin: %v", err)
 	}
 
 	// Request the plugin
-	log.Printf("[MANAGER] Dispensing plugin")
+	logger.Log.Info("[MANAGER] Dispensing plugin")
 	raw, err := rpcClient.Dispense("plugin")
 	if err != nil {
-		log.Printf("[MANAGER] Failed to dispense plugin: %v", err)
+		logger.Log.Error("[MANAGER] Failed to dispense plugin: %v", err)
 		client.Kill()
 		return nil, fmt.Errorf("failed to dispense plugin: %v", err)
 	}
@@ -325,41 +325,41 @@ func (m *Manager) LoadPlugin(name string) (PluginInterface, error) {
 	m.clients[name] = client
 
 	// Cast to our plugin interface
-	log.Printf("[MANAGER] Casting to plugin interface")
+	logger.Log.Info("[MANAGER] Casting to plugin interface")
 	plugin, ok := raw.(PluginInterface)
 	if !ok {
-		log.Printf("[MANAGER] Plugin does not implement required interface")
+		logger.Log.Info("[MANAGER] Plugin does not implement required interface")
 		client.Kill()
 		return nil, fmt.Errorf("plugin does not implement the required interface")
 	}
 
-	log.Printf("[MANAGER] Successfully loaded plugin %s", name)
+	logger.Log.Info("[MANAGER] Successfully loaded plugin %s", name)
 	return plugin, nil
 }
 
 // ExecutePlugin executes a plugin with the given arguments
 func (m *Manager) ExecutePlugin(name string, args []string) (string, error) {
-	log.Printf("[MANAGER] Executing plugin %s with args: %v", name, args)
+	logger.Log.Info("[MANAGER] Executing plugin %s with args: %v", name, args)
 	plugin, err := m.LoadPlugin(name)
 	if err != nil {
-		log.Printf("[MANAGER] Failed to load plugin: %v", err)
+		logger.Log.Error("[MANAGER] Failed to load plugin: %v", err)
 		return "", err
 	}
 
-	log.Printf("[MANAGER] Calling plugin.Execute()")
+	logger.Log.Info("[MANAGER] Calling plugin.Execute()")
 	result, err := plugin.Execute(args)
 	if err != nil {
-		log.Printf("[MANAGER] Plugin execution failed: %v", err)
+		logger.Log.Error("[MANAGER] Plugin execution failed: %v", err)
 		return "", err
 	}
 
-	log.Printf("[MANAGER] Plugin execution successful")
+	logger.Log.Info("[MANAGER] Plugin execution successful")
 	return result, nil
 }
 
 // Cleanup closes all plugin clients
 func (m *Manager) Cleanup() {
-	log.Printf("[MANAGER] Cleaning up plugin clients")
+	logger.Log.Info("[MANAGER] Cleaning up plugin clients")
 	for _, client := range m.clients {
 		client.Kill()
 	}
@@ -367,21 +367,21 @@ func (m *Manager) Cleanup() {
 
 // GetPluginNames returns a map of plugin names to their paths
 func (m *Manager) GetPluginNames() (map[string]string, error) {
-	log.Printf("[MANAGER] Getting plugin names from directory: %s", m.pluginDir)
+	logger.Log.Info("[MANAGER] Getting plugin names from directory: %s", m.pluginDir)
 	plugins, err := m.ListPlugins()
 	if err != nil {
-		log.Printf("[MANAGER] Error listing plugins: %v", err)
+		logger.Log.Error("[MANAGER] Error listing plugins: %v", err)
 		return nil, err
 	}
-	log.Printf("[MANAGER] Found raw plugin list: %v", plugins)
+	logger.Log.Info("[MANAGER] Found raw plugin list: %v", plugins)
 
 	pluginMap := make(map[string]string)
 	for _, plugin := range plugins {
 		// Remove the 'ti-' prefix if it exists
 		name := strings.TrimPrefix(plugin, "ti-")
-		log.Printf("[MANAGER] Mapping plugin %s to command name %s", plugin, name)
+		logger.Log.Info("[MANAGER] Mapping plugin %s to command name %s", plugin, name)
 		pluginMap[name] = plugin
 	}
-	log.Printf("[MANAGER] Final plugin map: %v", pluginMap)
+	logger.Log.Info("[MANAGER] Final plugin map: %v", pluginMap)
 	return pluginMap, nil
 }
