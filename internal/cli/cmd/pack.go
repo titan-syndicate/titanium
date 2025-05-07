@@ -3,13 +3,13 @@ package cli
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/pkg/stdcopy"
+	"github.com/titan-syndicate/titanium-plugin-sdk/pkg/logger"
 	"github.com/titan-syndicate/titanium/internal/cli"
 )
 
@@ -46,7 +46,7 @@ func runPack(cli *cli.CLI, args []string) error {
 	imageName := "buildpacksio/pack:latest"
 	_, _, err = dockerCli.ImageInspectWithRaw(context.Background(), imageName)
 	if err != nil {
-		log.Printf("Pulling image %s...", imageName)
+		logger.Log.Info("Pulling image %s...", imageName)
 		out, err := dockerCli.ImagePull(context.Background(), imageName, image.PullOptions{})
 		if err != nil {
 			return fmt.Errorf("failed to pull image: %v", err)
@@ -120,7 +120,7 @@ func runPack(cli *cli.CLI, args []string) error {
 
 	// Remove the container
 	if err := dockerCli.ContainerRemove(context.Background(), resp.ID, container.RemoveOptions{}); err != nil {
-		log.Printf("Warning: Failed to remove container: %v", err)
+		logger.Log.Warn("Failed to remove container: %v", err)
 	}
 
 	return nil
