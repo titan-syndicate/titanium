@@ -93,14 +93,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Initialize CLI
-	cliInstance = cli.NewCLI()
-
-	// Register commands
-	cmd.RegisterBuildCommands(cliInstance)
-	cmd.RegisterPackCommands(cliInstance)
-	cmd.RegisterPluginCommands(cliInstance)
-
 	// Execute root command
 	if err := rootCmd.Execute(); err != nil {
 		logger.Log.Error(err)
