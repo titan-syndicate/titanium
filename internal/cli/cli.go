@@ -7,23 +7,31 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// Command represents a CLI command
-type Command struct {
-	Name               string
-	Description        string
-	Subcommands        []Command
-	Run                func(*CLI, []string) error
-	RunE               func(*cobra.Command, []string) error
-	DisableFlagParsing bool
-}
-
 // CLI represents the command-line interface
 type CLI struct {
 	commands  map[string]Command
 	dockerCli *client.Client
 }
 
-// NewCLI creates a new CLI instance
+// Command represents a CLI command
+type Command struct {
+	Name               string
+	Description        string
+	Run                func(cli *CLI, args []string) error
+	RunE               func(cmd *cobra.Command, args []string) error
+	Subcommands        []Command
+	DisableFlagParsing bool
+}
+
+// New creates a new CLI instance
+func New(dockerCli *client.Client) *CLI {
+	return &CLI{
+		commands:  make(map[string]Command),
+		dockerCli: dockerCli,
+	}
+}
+
+// NewCLI creates a new CLI instance without Docker client
 func NewCLI() *CLI {
 	return &CLI{
 		commands: make(map[string]Command),
